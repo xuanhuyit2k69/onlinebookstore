@@ -1,12 +1,11 @@
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN apk add --no-cache maven && mvn -q -DskipTests package
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-FROM eclipse-temurin:17-jre-alpine
-WORKDIR /app
-COPY --from=build /app/target/olms-backend.jar app.jar
-EXPOSE 8080
-ENV SPRING_PROFILES_ACTIVE=docker
-ENTRYPOINT ["java", "-jar", "app.jar"]
+FROM nginx:1.25-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
